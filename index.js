@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
 const axios = require('axios');
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
@@ -36,7 +36,7 @@ async function initDbPool() {
   conn.release();
 }
 initDbPool().catch(err => {
-  console.error('DB init error:', err);
+  console.error('*********** DB init error:', err);
   process.exit(1);
 });
 
@@ -51,9 +51,10 @@ app.post('/posts', async (req, res) => {
     const { title, body } = req.body;
     if (!title) return res.status(400).json({ error: 'title required' });
     const [result] = await pool.query('INSERT INTO posts (title, body) VALUES (?, ?)', [title, body || null]);
+    console.out('*********** successfull db write:', err);
     res.status(201).json({ id: result.insertId, title, body });
   } catch (err) {
-    console.error(err);
+    console.error('*********** error writing to db:', err);
     res.status(500).json({ error: 'db error' });
   }
 });
@@ -62,9 +63,10 @@ app.post('/posts', async (req, res) => {
 app.get('/posts', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT id, title, body, created_at FROM posts ORDER BY id DESC LIMIT 100');
+    console
     res.json(rows);
   } catch (err) {
-    console.error(err);
+    console.error('*********** error reading from db:', err);
     res.status(500).json({ error: 'db error' });
   }
 });
@@ -72,13 +74,11 @@ app.get('/posts', async (req, res) => {
 // GET - external api call. Change with app setting EXTERNAL_API_URL
 app.get('/external', async (req, res) => {
   try {
-    const response = await axios.get(process.env.EXTERNAL_API_URL || 'https://api.github.com/', {
-      timeout: 10000
+    const response = await axios.get('https://httpbin.org/delay/320', {
+      timeout: 300000
     });
     res.json({
-      status: response.status,
-      headers: response.headers,
-      data: response.data
+      status: response.status
     });
   } catch (err) {
     console.error('external request error', err.message || err);
@@ -96,7 +96,7 @@ app.get('/start', async (req, res) => {
   res.write('Started long-running outbound call...\n');
   
   try {
-    const response = await axios.get('https://httpbin.org/delay/400', {
+    const response = await axios.get('https://httpbin.org/delay/320', {
       timeout: 300000, 
     });
     console.log('******* External api call completed');
