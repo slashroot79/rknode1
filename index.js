@@ -90,4 +90,36 @@ app.get('/external', async (req, res) => {
   }
 });
 
+
+app.get('/start', async (req, res) => {
+
+  res.write('Started long-running outbound call...\n');
+  
+  try {
+    const response = await axios.get('https://httpbin.org/delay/400', {
+      timeout: 300000, 
+    });
+    console.log('******* External api call completed');
+    res.write('Call completed successfully\n');
+  } catch (err) {
+    if (err.code === 'ERR_CANCELED') {
+      console.log('******* External api call cancelled or failed');
+      res.write('Call was aborted!\n');
+    } else {
+      console.log('******* External api call failed');
+      res.write(`Error: ${err.message}\n`);
+    }
+  } finally {
+    res.end();
+  }
+});
+
+
+app.get('/stop', (req, res) => {
+  console.log('******* Stopping long-running call');
+  res.send('Stop signal received');
+});
+
+
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
