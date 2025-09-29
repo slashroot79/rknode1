@@ -54,7 +54,7 @@ app.post('/posts', async (req, res) => {
     const { title, body } = req.body;
     if (!title) return res.status(400).json({ error: 'title required' });
     const [result] = await pool.query('INSERT INTO posts (title, body) VALUES (?, ?)', [title, body || null]);
-    console.out('*********** successfull db write:', err);
+    console.log('*********** successfull db write:', err);
     res.status(201).json({ id: result.insertId, title, body });
   } catch (err) {
     console.error('*********** error writing to db:', err);
@@ -64,9 +64,11 @@ app.post('/posts', async (req, res) => {
 
 // GET - db read
 app.get('/posts', async (req, res) => {
+  if (!pool) return res.status(500).json({ error: 'DB not ready' });
+
   try {
     const [rows] = await pool.query('SELECT id, title, body, created_at FROM posts ORDER BY id DESC LIMIT 100');
-    console
+
     res.json(rows);
   } catch (err) {
     console.error('*********** error reading from db:', err);
