@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Workflow file
+.github/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
