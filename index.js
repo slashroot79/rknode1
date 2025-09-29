@@ -8,6 +8,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
+const EXTERNAL_API_URL1 = 'https://httpbin.org/delay/320'; 
+const EXTERNAL_API_URL2 = 'https://deelay.me/320000/https://jsonplaceholder.typicode.com/todos/1';
+
 // DB connection pool using env vars
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -74,7 +77,7 @@ app.get('/posts', async (req, res) => {
 // GET - external api call. Change with app setting EXTERNAL_API_URL
 app.get('/external', async (req, res) => {
   try {
-    const response = await axios.get('https://httpbin.org/delay/320', {
+    const response = await axios.get(EXTERNAL_API_URL2, {
       timeout: 300000
     });
     res.json({
@@ -96,7 +99,7 @@ app.get('/start', async (req, res) => {
   res.write('Started long-running outbound call...\n');
   
   try {
-    const response = await axios.get('https://httpbin.org/delay/320', {
+    const response = await axios.get(EXTERNAL_API_URL2, {
       timeout: 300000, 
     });
     console.log('******* External api call completed');
@@ -116,7 +119,7 @@ app.get('/start', async (req, res) => {
 
 
 app.get('/stop', (req, res) => {
-  console.log('******* Stopping long-running call');
+  console.log('******* Will stop long-running call');
   res.send('Stop signal received');
 });
 
