@@ -50,14 +50,12 @@ app.get('/slow', async (req, res, next) => {
 app.get('/start', async (req, res) => {
    try {
       console.log('***** Calling VM slow API...');
+      res.send('***** Started VM slow API call...');
       const response = await axios.get(`${VM_URL}/vmslow`);
-      console.log('***** Completed VM slow API call...');
-      res.json({ fromVm: response.data });
+      console.log(`***** Completed VM slow API call. Response: ${JSON.stringify(response.data)}`);
     } catch (err) {
       console.error(`***** ${err.message}`);
     }
-
-  res.json({ status: '***** Started slow VM call' });
 });
 
 app.use((err, req, res, next) => {
