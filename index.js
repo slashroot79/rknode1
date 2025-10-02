@@ -9,11 +9,11 @@ const VM_URL = process.env.VM_URL || "http://localhost:4000";
 app.use((req, res, next) => {
   const start = Date.now();
   console.log(`[REQ] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
-  console.log(`  Headers: ${JSON.stringify(req.headers)}`);
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[RES] ${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`);
+    console.log(`[response] ${new Date().toISOString()}  ${res.statusCode} (${duration}ms)`);
+    console.log("****************************************************************")
   });
 
   next();
@@ -29,6 +29,7 @@ app.get('/', async (req, res, next) => {
 
 app.get('/fast', async (req, res, next) => {
   try {
+    console.log('Upstream URL: /vmfast');
     const response = await axios.get(`${VM_URL}/vmfast`);
     res.json({ fromVm: response.data });
   } catch (err) {
@@ -38,6 +39,7 @@ app.get('/fast', async (req, res, next) => {
 
 app.get('/slow', async (req, res, next) => {
   try {
+    console.log('Upstream URL: /vmslow');
     const response = await axios.get(`${VM_URL}/vmslow`);
     res.json({ fromVm: response.data });
   } catch (err) {
