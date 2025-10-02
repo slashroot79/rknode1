@@ -40,7 +40,9 @@ app.get('/fast', async (req, res, next) => {
 app.get('/slow', async (req, res, next) => {
   try {
     console.log('Upstream URL: /vmslow');
+    console.log('***** Calling VM - slow API...');
     const response = await axios.get(`${VM_URL}/vmslow`);
+    console.log(`***** Completed VM slow API call. Response: ${JSON.stringify(response.data)}`);
     res.json({ fromVm: response.data });
   } catch (err) {
     next(err);
@@ -49,10 +51,10 @@ app.get('/slow', async (req, res, next) => {
 
 app.get('/start', async (req, res) => {
    try {
-      console.log('***** Calling VM slow API...');
-      res.send('***** Started VM slow API call...');
+      console.log('***** Calling VM - start API...');
+      res.send('***** Started VM start API call...');
       const response = await axios.get(`${VM_URL}/vmslow`);
-      console.log(`***** Completed VM slow API call. Response: ${JSON.stringify(response.data)}`);
+      console.log(`***** Completed VM start API call. Response: ${JSON.stringify(response.data)}`);
     } catch (err) {
       console.error(`***** ${err.message}`);
     }
