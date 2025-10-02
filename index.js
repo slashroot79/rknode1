@@ -1,130 +1,69 @@
+
 const express = require('express');
-const bodyParser = require('body-parser');
-const mysql = require('mysql2/promise');
 const axios = require('axios');
 
 const app = express();
-app.use(express.json());
+const port = process.env.PORT || 8000;
+const VM_URL = process.env.VM_URL || "http://localhost:4000";
 
-const PORT = process.env.PORT || 8080;
+app.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[REQ] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
+  console.log(`  Headers: ${JSON.stringify(req.headers)}`);
 
-const EXTERNAL_API_URL1 = 'https://httpbin.org/delay/320'; 
-const EXTERNAL_API_URL2 = 'https://deelay.me/320000/https://jsonplaceholder.typicode.com/todos/1';
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[RES] ${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`);
+  });
 
-// DB connection pool using env vars
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-let pool;
-async function initDbPool() {
-  pool = mysql.createPool(dbConfig);
-  // create table if not exists
-  const createTbl = `
-    CREATE TABLE IF NOT EXISTS posts (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      title VARCHAR(255) NOT NULL,
-      body TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB;
-  `;
-  const conn = await pool.getConnection();
-  await conn.query(createTbl);
-  conn.release();
-}
-initDbPool().catch(err => {
-  console.error('*********** DB init error:', err);
-  process.exit(1);
+  next();
 });
 
-// GET Root url - also for health probes
-app.get('/', (req, res) => {
-  res.status(200).send('Hello...app service root!');
-});
-
-// POST  - db write
-app.post('/posts', async (req, res) => {
+app.get('/', async (req, res, next) => {
   try {
-    const { title, body } = req.body;
-    if (!title) return res.status(400).json({ error: 'title required' });
-    const [result] = await pool.query('INSERT INTO posts (title, body) VALUES (?, ?)', [title, body || null]);
-    console.log('*********** successfull db write:', err);
-    res.status(201).json({ id: result.insertId, title, body });
+    res.json({ message: 'App Service root url' });
   } catch (err) {
-    console.error('*********** error writing to db:', err);
-    res.status(500).json({ error: 'db error' });
+    next(err);
   }
 });
 
-// GET - db read
-app.get('/posts', async (req, res) => {
-  if (!pool) return res.status(500).json({ error: 'DB not ready' });
-
+app.get('/fast', async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, title, body, created_at FROM posts ORDER BY id DESC LIMIT 100');
-
-    res.json(rows);
+    const response = await axios.get(`${VM_URL}/vmfast`);
+    res.json({ fromVm: response.data });
   } catch (err) {
-    console.error('*********** error reading from db:', err);
-    res.status(500).json({ error: 'db error' });
+    next(err);
   }
 });
 
-// GET - external api call. Change with app setting EXTERNAL_API_URL
-app.get('/external', async (req, res) => {
+app.get('/slow', async (req, res, next) => {
   try {
-    const response = await axios.get(EXTERNAL_API_URL2, {
-      timeout: 300000
-    });
-    res.json({
-      status: response.status
-    });
+    const response = await axios.get(`${VM_URL}/vmslow`);
+    res.json({ fromVm: response.data });
   } catch (err) {
-    console.error('external request error', err.message || err);
-    if (err.response) {
-      res.status(err.response.status).json({ error: 'upstream error', details: err.response.data });
-    } else {
-      res.status(502).json({ error: 'request failed', message: err.message });
-    }
+    next(err);
   }
 });
-
 
 app.get('/start', async (req, res) => {
-
-  res.write('Started long-running outbound call...\n');
-  
-  try {
-    const response = await axios.get(EXTERNAL_API_URL2, {
-      timeout: 300000, 
-    });
-    console.log('******* External api call completed');
-    res.write('Call completed successfully\n');
-  } catch (err) {
-    if (err.code === 'ERR_CANCELED') {
-      console.log('******* External api call cancelled or failed');
-      res.write('Call was aborted!\n');
-    } else {
-      console.log('******* External api call failed');
-      res.write(`Error: ${err.message}\n`);
+   try {
+      console.log('***** Calling VM slow API...');
+      const response = await axios.get(`${VM_URL}/vmslow`);
+      console.log('***** Completed VM slow API call...');
+      res.json({ fromVm: response.data });
+    } catch (err) {
+      console.error(`***** ${err.message}`);
     }
-  } finally {
-    res.end();
-  }
+
+  res.json({ status: '***** Started slow VM call' });
 });
 
-
-app.get('/stop', (req, res) => {
-  console.log('******* Will stop long-running call');
-  res.send('Stop signal received');
+app.use((err, req, res, next) => {
+  console.error(`[ERR] ${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${err.message}`);
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
-
-
-app.listen(PORT, () => console.log(`Listening on ${PORT}`));
+app.listen(port, () => {
+  console.log(`Node app Service  running on port ${port}`);
+});
